@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: retention
+      POSTGRES_USER: retention
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    volumes:
+      - retention_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retention -d retention"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8085:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://retention:${POSTGRES_PASSWORD}@db:5432/retention
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8085,http://127.0.0.1:8085}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  retention_postgres:
